@@ -1,80 +1,26 @@
-import React, { Component } from 'react';
-import { AppRegistry, Text, Button, ScrollView, Image, View, Alert } from 'react-native';
+/**
+ * Sample React Native App
+ * https://github.com/facebook/react-native
+ *
+ * @format
+ * @flow
+ */
+
+import React, {Component} from 'react';
+import {Platform, StyleSheet, Text, View} from 'react-native';
+import { AppRegistry,  Button, ScrollView, Image, Alert } from 'react-native';
 import Countly from 'countly-sdk-react-native-bridge';
-import { PushNotificationIOS }  from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-// import StackTrace from '/Countly.StackTrace.js';
-// import stacktrace from 'react-native-stacktrace';
 // var PushNotification = require('react-native-push-notification');
+const instructions = Platform.select({
+  ios: 'Press Cmd+R to reload,\n' + 'Cmd+D or shake for dev menu',
+  android:
+    'Double tap R on your keyboard to reload,\n' +
+    'Shake or press menu button for dev menu',
+});
 
-Countly.autoTrackingView = function(state){
-
-}
-// Auto Navigation Example.
-const Stack = createStackNavigator();
-export const navigationRef = React.createRef();
-export function navigate(name){
-  navigationRef.current?.navigate(name);
-}
-
-class PageOne extends Component {
-  render(){
-    return(
-      <ScrollView>
-        <Text>Page One</Text>
-        <Button onPress={() => navigate('PageOne')} title="Go to Page One"></Button>
-        <Button onPress={() => navigate('PageTwo')} title="Go to Page Two"></Button>
-        <Button onPress={() => navigate('PageThree')} title="Go to Page Three"></Button>
-        <Button onPress={() => navigate('Example')} title="Go to Page Example"></Button>
-      </ScrollView>
-      );
-  }
-}
-class PageTwo extends Component {
-  render(){
-    return(
-    <View>
-      <Text>Page Two</Text>
-      <Button onPress={() => navigate('PageOne')} title="Go to Page One"></Button>
-      <Button onPress={() => navigate('PageTwo')} title="Go to Page Two"></Button>
-      <Button onPress={() => navigate('PageThree')} title="Go to Page Three"></Button>
-      <Button onPress={() => navigate('Example')} title="Go to Page Example"></Button>
-    </View>
-      );
-  }
-}
-class PageThree extends Component {
-  render(){
-    return(
-    <View>
-      <Text>Page Three</Text>
-      <Button onPress={() => navigate('PageOne')} title="Go to Page One"></Button>
-      <Button onPress={() => navigate('PageTwo')} title="Go to Page Two"></Button>
-      <Button onPress={() => navigate('PageThree')} title="Go to Page Three"></Button>
-      <Button onPress={() => navigate('Example')} title="Go to Page Example"></Button>
-    </View>
-      );
-  }
-}
-// Auto Navigation Example.
-
-class AwesomeProject extends Component {
-  render() {
-    return (
-      <NavigationContainer onStateChange={Countly.autoTrackingView}>
-        <Stack.Navigator initialRouteName="Example">
-          <Stack.Screen name="Example" component = {Example} />
-          <Stack.Screen name="PageOne" component={PageOne} />
-          <Stack.Screen name="PageTwo" component={PageTwo} />
-          <Stack.Screen name="PageThree" component={PageThree} />
-        </Stack.Navigator>
-      </NavigationContainer>
-      )
-  }
-}
-class Example extends Component {
-    constructor(props) {
+type Props = {};
+export default class App extends Component<Props> {
+  constructor(props) {
         super(props);
         this.config = {};
 
@@ -97,6 +43,7 @@ class Example extends Component {
         this.enableParameterTamperingProtection = this.enableParameterTamperingProtection.bind(this);
     };
     onInit(){
+      Countly.pushTokenType(Countly.messagingMode.DEVELOPMENT);
       Countly.init("https://trinisoft.count.ly", "f0b2ac6919f718a13821575db28c0e2971e05ec5");
       // Countly.init("https://try.count.ly","0e8a00e8c01395a0af8be0e55da05a404bb23c3e");
       // ,"","5", "Rate us.", "How would you rate the app?", "Dismiss",false
@@ -358,45 +305,46 @@ class Example extends Component {
     };
 
     setupPush(){
-      console.log('setupPush');
-      PushNotificationIOS.addEventListener('registrationError', function(error){
-        console.log('error:', error);
-      });
+      Countly.askForNotificationPermission();
+      // console.log('setupPush');
+      // PushNotificationIOS.addEventListener('registrationError', function(error){
+      //   console.log('error:', error);
+      // });
 
-      PushNotification.configure({
-          onRegister: function(token) {
-            console.log( 'TOKEN:', token );
-            var options = {
-              token: token.token,
-              messagingMode: Countly.messagingMode.DEVELOPMENT
-            }
-            Countly.sendPushToken(options)
-          },
-          onNotification: function(notification) {
-              console.log( 'NOTIFICATION:', notification );
-              // process the notification
-              // required on iOS only (see fetchCompletionHandler docs: https://facebook.github.io/react-native/docs/pushnotificationios.html)
-              notification.finish(PushNotificationIOS.FetchResult.NoData);
-          },
-          // ANDROID ONLY: GCM or FCM Sender ID (product_number) (optional - not required for local notifications, but is need to receive remote push notifications)
-          senderID: "881000050249",
-          // IOS ONLY (optional): default: all - Permissions to register.
-          permissions: {
-              alert: true,
-              badge: true,
-              sound: true
-          },
+      // PushNotification.configure({
+      //     onRegister: function(token) {
+      //       console.log( 'TOKEN:', token );
+      //       var options = {
+      //         token: token.token,
+      //         messagingMode: Countly.messagingMode.DEVELOPMENT
+      //       }
+      //       Countly.sendPushToken(options)
+      //     },
+      //     onNotification: function(notification) {
+      //         console.log( 'NOTIFICATION:', notification );
+      //         // process the notification
+      //         // required on iOS only (see fetchCompletionHandler docs: https://facebook.github.io/react-native/docs/pushnotificationios.html)
+      //         notification.finish(PushNotificationIOS.FetchResult.NoData);
+      //     },
+      //     // ANDROID ONLY: GCM or FCM Sender ID (product_number) (optional - not required for local notifications, but is need to receive remote push notifications)
+      //     senderID: "881000050249",
+      //     // IOS ONLY (optional): default: all - Permissions to register.
+      //     permissions: {
+      //         alert: true,
+      //         badge: true,
+      //         sound: true
+      //     },
 
-          // Should the initial notification be popped automatically
-          // default: true
-          popInitialNotification: true,
-          /**
-            * (optional) default: true
-            * - Specified if permissions (ios) and token (android and ios) will requested or not,
-            * - if not, you must call PushNotificationsHandler.requestPermissions() later
-            */
-          requestPermissions: true,
-      });
+      //     // Should the initial notification be popped automatically
+      //     // default: true
+      //     popInitialNotification: true,
+      //     /**
+      //       * (optional) default: true
+      //       * - Specified if permissions (ios) and token (android and ios) will requested or not,
+      //       * - if not, you must call PushNotificationsHandler.requestPermissions() later
+      //       */
+      //     requestPermissions: true,
+      // });
     }
 
     enableLogging(){
@@ -604,5 +552,21 @@ class Example extends Component {
     }
 }
 
-module.exports = AwesomeProject;
-AppRegistry.registerComponent('AwesomeProject', () => AwesomeProject);
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F5FCFF',
+  },
+  welcome: {
+    fontSize: 20,
+    textAlign: 'center',
+    margin: 10,
+  },
+  instructions: {
+    textAlign: 'center',
+    color: '#333333',
+    marginBottom: 5,
+  },
+});

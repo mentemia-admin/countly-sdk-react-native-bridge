@@ -22,13 +22,6 @@ RCT_EXPORT_METHOD(init:(NSArray*)arguments)
   NSString* serverurl = [arguments objectAtIndex:0];
   NSString* appkey = [arguments objectAtIndex:1];
   NSString* deviceID = [arguments objectAtIndex:2];
-  NSString* ratingTitle = [arguments objectAtIndex:4];
-  NSString* ratingMessage = [arguments objectAtIndex:5];
-  NSString* ratingButton = [arguments objectAtIndex:6];
-  BOOL consentFlag = [[arguments objectAtIndex:7] boolValue];
-  NSString* ratingLimitString = [arguments objectAtIndex:3];
-  int ratingLimit = [ratingLimitString intValue];
-
 
   if (config == nil){
     config = CountlyConfig.new;
@@ -38,19 +31,14 @@ RCT_EXPORT_METHOD(init:(NSArray*)arguments)
   }
   config.appKey = appkey;
   config.host = serverurl;
-  config.enableRemoteConfig = YES;
-  config.starRatingSessionCount = ratingLimit;
-  config.starRatingDisableAskingForEachAppVersion = YES;
-  config.starRatingMessage = ratingMessage;
-  config.requiresConsent = consentFlag;
-
+  config.features = @[CLYCrashReporting, CLYPushNotifications];
 
   if (serverurl != nil && [serverurl length] > 0) {
-    [[Countly sharedInstance] startWithConfig:config];
-  } else {
+      dispatch_async(dispatch_get_main_queue(), ^
+      {
+          [[Countly sharedInstance] startWithConfig:config];
+      });
   }
-
-
 }
 
 RCT_EXPORT_METHOD(event:(NSArray*)arguments)
@@ -144,16 +132,36 @@ RCT_EXPORT_METHOD(setUserData:(NSArray*)arguments)
 }
 
 
-RCT_EXPORT_METHOD(onRegistrationId:(NSArray*)arguments)
+RCT_EXPORT_METHOD(sendPushToken:(NSArray*)arguments)
 {
-  NSString* token = [arguments objectAtIndex:0];
-  NSString* messagingMode = [arguments objectAtIndex:1];
-  //  int mode = [messagingMode intValue];
-  //  NSInteger messagingModeInteger = [messagingMode intValue];
-  //  NSData *tokenByte = [token dataUsingEncoding:NSUTF8StringEncoding];
-
-  [CountlyConnectionManager.sharedInstance sendPushTokenReactNative:token messagingMode:messagingMode];
+    NSString* token = [arguments objectAtIndex:0];
+    NSString* messagingMode = [arguments objectAtIndex:1];
+    NSString *urlString = [ @"" stringByAppendingFormat:@"%@?device_id=%@&app_key=%@&token_session=1&test_mode=%@&ios_token=%@", config.host, [Countly.sharedInstance deviceID], config.appKey, messagingMode, token];
+    NSMutableURLRequest *request = [[NSMutableURLRequest alloc] init];
+    [request setHTTPMethod:@"GET"];
+    [request setURL:[NSURL URLWithString:urlString]];
 }
+RCT_EXPORT_METHOD(pushTokenType:(NSArray*)arguments)
+{
+  if (config == nil){
+    config = CountlyConfig.new;
+  }
+  config.sendPushTokenAlways = YES;
+  NSString* tokenType = [arguments objectAtIndex:0];
+  if([tokenType isEqualToString: @"1"]){
+      config.pushTestMode = @"CLYPushTestModeDevelopment";
+  }
+  else if([tokenType isEqualToString: @"2"]){
+      config.pushTestMode = @"CLYPushTestModeTestFlightOrAdHoc";
+  }else{
+  }
+}
+
+RCT_EXPORT_METHOD(askForNotificationPermission:(NSArray*)arguments)
+{
+  [Countly.sharedInstance askForNotificationPermission];
+}
+
 
 RCT_EXPORT_METHOD(start)
 {
@@ -303,7 +311,7 @@ RCT_EXPORT_METHOD(setLocation:(NSArray*)arguments)
   NSString* location = [arguments objectAtIndex:2];
   NSString* IP = [arguments objectAtIndex:3];
 
-  if ([location  isEqual: @"0,0"]){
+  if ([location  isEqual: @"0.0,0.0"]){
 
   }else{
     NSArray *locationArray = [location componentsSeparatedByString:@","];   //take the one array for split the string
@@ -325,7 +333,7 @@ RCT_EXPORT_METHOD(setLocation:(NSArray*)arguments)
 
 }
 
-RCT_EXPORT_METHOD(disableLocation:(NSArray*)arguments)
+RCT_EXPORT_METHOD(disableLocation)
 {
   [Countly.sharedInstance disableLocationInfo];
 }
@@ -360,6 +368,13 @@ RCT_EXPORT_METHOD(logException:(NSArray*)arguments)
   NSException* myException = [NSException exceptionWithName:@"Exception" reason:execption userInfo:dict];
 
   [Countly.sharedInstance recordHandledException:myException withStackTrace: nsException];
+}
+
+RCT_EXPORT_METHOD(logJSException:(NSString *)errTitle withMessage:(NSString *)message withStack:(NSString *)stackTrace) {
+  NSException* myException = [NSException exceptionWithName:errTitle reason:message
+                              userInfo:@{@"nonfatal":@"1"}];
+  NSArray *stack = [stackTrace componentsSeparatedByString:@"\n"];
+  [Countly.sharedInstance recordHandledException:myException withStackTrace:stack];
 }
 
 RCT_EXPORT_METHOD(userData_setProperty:(NSArray*)arguments)
@@ -431,6 +446,9 @@ RCT_EXPORT_METHOD(userData_pushUniqueValue:(NSArray*)arguments)
 {
   NSString* keyName = [arguments objectAtIndex:0];
   NSString* keyValue = [arguments objectAtIndex:1];
+
+  [Countly.user pushUnique:keyName value:keyValue];
+  [Countly.user save];
 }
 RCT_EXPORT_METHOD(userData_pushValue:(NSArray*)arguments)
 {
@@ -548,18 +566,18 @@ RCT_EXPORT_METHOD(updateRemoteConfigExceptKeys:(NSArray*)arguments:(RCTResponseS
       }
   }];
 }
+
 RCT_EXPORT_METHOD(getRemoteConfigValueForKey:(NSArray*)arguments:(RCTResponseSenderBlock)callback)
 {
-  NSString* keyName = [arguments objectAtIndex:0];
-  id value = [Countly.sharedInstance remoteConfigValueForKey:keyName];
-  if (value){
+  id value = [Countly.sharedInstance remoteConfigValueForKey:[arguments objectAtIndex:0]];
+  if(!value){
+      value = @"Default Value";
+    callback(@[value]);
   }
   else{
-    value = @"ConfigKeyNotFound";
+    NSString *value = @"ConfigKeyNotFound";
+    callback(@[value]);
   }
-  NSString* returnString = [NSString stringWithFormat:@"%@", value];
-  NSArray *result = @[returnString];
-  callback(@[result]);
 }
 
 RCT_EXPORT_METHOD(showStarRating:(NSArray*)arguments)

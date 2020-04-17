@@ -8,6 +8,7 @@ import {
     Platform,
     NativeModules
 } from 'react-native';
+import parseErrorStackLib from '../react-native/Libraries/Core/Devtools/parseErrorStack.js';
 
 const CountlyReactNative = NativeModules.CountlyReactNative;
 
@@ -15,7 +16,7 @@ const Countly = {};
 Countly.serverUrl = "";
 Countly.appKey = "";
 
-Countly.messagingMode = {"DEVELOPMENT":1,"PRODUCTION":0, "ADHOC": 2};
+Countly.messagingMode = {"DEVELOPMENT":"1","PRODUCTION":"0", "ADHOC": "2"};
 if (Platform.OS.match("android")) {
     Countly.messagingMode.DEVELOPMENT = 2;
 }
@@ -23,24 +24,25 @@ if (Platform.OS.match("android")) {
 // countly initialization
 Countly.init = function(serverUrl,
                         appKey,
-                        deviceId = "",
-                        starRatingAutoSessionCount = "0",
-                        starRatingTitle = "Rate us.",
-                        starRatingMessage = "How would you rate the app?",
-                        starRatingButtonText = "Dismiss",
-                        consentFlag = false
-                        ){
+                        deviceId = ""){
+                        //     ,
+                        // starRatingAutoSessionCount = "0",
+                        // starRatingTitle = "Rate us.",
+                        // starRatingMessage = "How would you rate the app?",
+                        // starRatingButtonText = "Dismiss",
+                        // consentFlag = false
+
     Countly.serverUrl = serverUrl;
     Countly.appKey = appKey;
     var args = [];
     args.push(serverUrl);
     args.push(appKey);
     args.push(deviceId);
-    args.push(starRatingAutoSessionCount);
-    args.push(starRatingTitle);
-    args.push(starRatingMessage);
-    args.push(starRatingButtonText);
-    args.push(consentFlag);
+    // args.push(starRatingAutoSessionCount);
+    // args.push(starRatingTitle);
+    // args.push(starRatingMessage);
+    // args.push(starRatingButtonText);
+    // args.push(consentFlag);
 
     CountlyReactNative.init(args);
 }
@@ -99,18 +101,45 @@ Countly.sendEvent = function(options){
 Countly.recordView = function(recordView){
     CountlyReactNative.recordView([recordView || ""]);
 };
+// As per the above documentation apply auto tracking method.
+// https://reactnavigation.org/docs/screen-tracking
+Countly.previousRouteName = "";
+Countly.autoTrackingView = function(state){
+    const currentRouteName = getActiveRouteName(state);
+    if(currentRouteName != Countly.previousRouteName){
+        Countly.recordView(currentRouteName);
+    }
+    Countly.previousRouteName = currentRouteName;
+};
+const getActiveRouteName = function(state){
+  const route = state.routes[state.index];
+
+  if (route.state) {
+    // Dive into nested navigators
+    return getActiveRouteName(route.state);
+  }
+
+  return route.name;
+};
 
 Countly.setViewTracking = function(boolean){
     CountlyReactNative.setViewTracking([boolean || "false"]);
 }
 
+Countly.pushTokenType = function(tokenType){
+    var args = [];
+    args.push(tokenType || "");
+    CountlyReactNative.pushTokenType(args);
+}
 Countly.sendPushToken = function(options){
     var args = [];
     args.push(options.token || "");
     args.push((options.messagingMode || "").toString());
-    CountlyReactNative.onRegistrationId(args);
+    CountlyReactNative.sendPushToken(args);
 }
-
+Countly.askForNotificationPermission = function(){
+    CountlyReactNative.askForNotificationPermission([]);
+}
 // countly start for android
 Countly.start = function(){
     CountlyReactNative.start();
@@ -176,24 +205,52 @@ Countly.changeDeviceId = function(newDeviceID, onServer){
     newDeviceID = newDeviceID.toString() || "";
     CountlyReactNative.changeDeviceId([newDeviceID, onServer]);
 }
-Countly.userLoggedIn = function(deviceId){
-    var args = [];
-    args.push(deviceId || "");
-    CountlyReactNative.userLoggedIn(args);
-}
-Countly.userLoggedOut = function(){
-    CountlyReactNative.userLoggedOut([]);
-}
 Countly.setHttpPostForced = function(boolean){
     var args = [];
     args.push(boolean?"1":"0");
     CountlyReactNative.setHttpPostForced(args);
 }
+
 Countly.isCrashReportingEnabled = false;
 Countly.enableCrashReporting = function(){
+    if (ErrorUtils && !Countly.isCrashReportingEnabled) {
+        console.log("Adding Countly JS error handler.");
+        var previousHandler = ErrorUtils.getGlobalHandler();
+        ErrorUtils.setGlobalHandler(function (error, isFatal) {
+            var jsStackTrace = parseErrorStackLib(error);
+            var fname = jsStackTrace[0].file;
+            if (fname.startsWith("http")) {
+                var chunks = fname.split("/");
+                fname = chunks[chunks.length-1].split("?")[0];
+            }
+            var errorTitle = `${error.name} (${jsStackTrace[0].methodName}@${fname})`;
+            const regExp = "(.*)(@?)http(s?).*/(.*)\\?(.*):(.*):(.*)";
+            const stackArr = error.stack.split("\n").map(row => {
+                row = row.trim();
+                if (!row.includes("http")) return row;
+                else {
+                    const matches = row.match(regExp);
+                    return matches && matches.length == 8 ? `${matches[1]}${matches[2]}${matches[4]}(${matches[6]}:${matches[7]})` : row;
+                } 
+            })
+            const stack = stackArr.join("\n");
+            if (Platform.OS.match("android")) {                
+                CountlyReactNative.logJSException(errorTitle, error.message.trim(), stack);
+            }
+            else if (Platform.OS.match("ios")) {   
+                const errMessage = `[React] ${errorTitle}: ${error.message}`;
+                const errStack = error.message + "\n" + stack;
+                CountlyReactNative.logJSException(errorTitle, errMessage, errStack);
+            }
+            if (previousHandler) {
+                previousHandler(error, isFatal);
+            }
+        });
+    }
     Countly.isCrashReportingEnabled = true;
     CountlyReactNative.enableCrashReporting();
 }
+
 Countly.addCrashLog = function(crashLog){
     CountlyReactNative.addCrashLog([crashLog]);
 }
@@ -214,6 +271,13 @@ Countly.logException = function(exception, nonfatal, segments){
     CountlyReactNative.logException(args);
 }
 
+/*
+Countly.testAndroidCrash = function(x) {
+    if (Platform.OS.match("android")) {
+        CountlyReactNative.testCrash();
+    }
+}
+*/
 Countly.setCustomCrashSegments = function(logs){
     if(!logs){
         logs = [];
@@ -392,21 +456,35 @@ Countly.updateRemoteConfigExceptKeys = function(keyNames, callback){
 }
 
 Countly.getRemoteConfigValueForKey = function(keyName, callback){
-    CountlyReactNative.getRemoteConfigValueForKey([keyName.toString() || ""], (stringItem) => {
-        callback(stringItem);
+    CountlyReactNative.getRemoteConfigValueForKey([keyName.toString() || ""], (value) => {
+        if (Platform.OS == "android" ) {                       
+            try {
+                value = JSON.parse(value);
+            }  
+            catch (e) {
+               // console.log(e.message);
+               // noop. value will remain string if not JSON parsable and returned as string
+             }
+        }
+        callback(value);
     });
 }
 
-Countly.getRemoteConfigValueForKeyP = async function(keyName){
-    try {
-        const value = await CountlyReactNative.getRemoteConfigValueForKeyP(keyName);
-        console.log("value for key", keyName, value);
-        return value;
-    }
-    catch (e) {
-        console.log("value not found for key", keyName);
-        return `Value not found for key: ${keyName}`;
-    }
+Countly.getRemoteConfigValueForKeyP = function(keyName){
+        if (Platform.OS != "android" ) return "To be implemented"; 
+        const promise = CountlyReactNative.getRemoteConfigValueForKeyP(keyName);
+        return promise.then(value => {
+            if (Platform.OS == "android" ) {                       
+                try {
+                    value = JSON.parse(value);
+                }  
+                catch (e) {
+                   // console.log(e.message);
+                   // noop. value will remain string if not JSON parsable and returned as string
+                 }
+            }
+            return value;
+        })
 }
 
 Countly.remoteConfigClearValues = async function(){
@@ -436,17 +514,5 @@ Countly.testCrash = function(){
 }
 */
 
-
-if (ErrorUtils) {
-    var previousHandler = ErrorUtils.getGlobalHandler();
-    ErrorUtils.setGlobalHandler(function (error, isFatal) {
-        if(Countly.isCrashReportingEnabled){
-            var stack = error.stack.toString();
-            Countly.logException(stack, isFatal, {});
-        }else{
-            previousHandler(error, isFatal);
-        }
-    });
-}
 
 export default Countly;
