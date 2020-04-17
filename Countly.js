@@ -513,6 +513,23 @@ Countly.testCrash = function(){
     CountlyReactNative.testCrash();
 }
 */
+// Mentemia customizations-------------
 
+Countly.logExceptionV2 = function(exception, nonfatal, segments) {
+    var exceptionArray = exception.split("\n");
+    var exceptionString = "";
+    for (var i = 0, il = exceptionArray.length; i < il; i++) {
+      exceptionString += "" + exceptionArray[i] + "\n";
+    }
+    var args = [];
+    args.push(exceptionString || "");
+    args.push(nonfatal || false);
+    for (var key in segments) {
+      args.push(key);
+      args.push(segments[key].toString());
+    }
+    CountlyReactNative.logExceptionV2(args);
+  };
+  
 
 export default Countly;

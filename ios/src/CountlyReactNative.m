@@ -370,6 +370,27 @@ RCT_EXPORT_METHOD(logException:(NSArray*)arguments)
   [Countly.sharedInstance recordHandledException:myException withStackTrace: nsException];
 }
 
+
+RCT_EXPORT_METHOD(logExceptionV2:(NSArray*)arguments)
+{
+  NSString* name = [arguments objectAtIndex:0];
+  NSString* nonfatal = [arguments objectAtIndex:1];
+  NSString* stack = [arguments objectAtIndex:3];
+  NSArray *nsException = [stack componentsSeparatedByString:@"\n"];
+
+  NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
+
+  for(int i=4,il=(int)arguments.count;i<il;i+=2){
+      dict[[arguments objectAtIndex:i]] = [arguments objectAtIndex:i+1];
+  }
+  [dict setObject:nonfatal forKey:@"nonfatal"];
+
+  NSException* myException = [NSException exceptionWithName:@"Exception" reason:name userInfo:dict];
+
+  [Countly.sharedInstance recordHandledException:myException withStackTrace: nsException];
+}
+
+
 RCT_EXPORT_METHOD(logJSException:(NSString *)errTitle withMessage:(NSString *)message withStack:(NSString *)stackTrace) {
   NSException* myException = [NSException exceptionWithName:errTitle reason:message
                               userInfo:@{@"nonfatal":@"1"}];
