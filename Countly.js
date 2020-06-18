@@ -6,11 +6,13 @@
 
 import {
     Platform,
-    NativeModules
+    NativeModules,
+    NativeEventEmitter
 } from 'react-native';
 import parseErrorStackLib from '../react-native/Libraries/Core/Devtools/parseErrorStack.js';
 
 const CountlyReactNative = NativeModules.CountlyReactNative;
+const eventEmitter = new NativeEventEmitter(CountlyReactNative);
 
 const Countly = {};
 Countly.serverUrl = "";
@@ -46,11 +48,15 @@ Countly.init = function(serverUrl,
 
     CountlyReactNative.init(args);
 }
+
 Countly.isInitialized = function(){
-    return CountlyReactNative.isInitialized([]);
+    // returns a promise
+    return CountlyReactNative.isInitialized();
 }
+
 Countly.hasBeenCalledOnStart = function(){
-    return CountlyReactNative.hasBeenCalledOnStart([]);
+    // returns a promise
+    return CountlyReactNative.hasBeenCalledOnStart();
 }
 
 // countly sending various types of events
@@ -98,28 +104,18 @@ Countly.sendEvent = function(options){
     }
     CountlyReactNative.event(args);
 }
-Countly.recordView = function(recordView){
-    CountlyReactNative.recordView([recordView || ""]);
-};
-// As per the above documentation apply auto tracking method.
-// https://reactnavigation.org/docs/screen-tracking
-Countly.previousRouteName = "";
-Countly.autoTrackingView = function(state){
-    const currentRouteName = getActiveRouteName(state);
-    if(currentRouteName != Countly.previousRouteName){
-        Countly.recordView(currentRouteName);
+
+Countly.recordView = function(recordView, segments){
+    var args = [];
+    args.push(String(recordView) || "");
+    if(!segments){
+        segments = {};
     }
-    Countly.previousRouteName = currentRouteName;
-};
-const getActiveRouteName = function(state){
-  const route = state.routes[state.index];
-
-  if (route.state) {
-    // Dive into nested navigators
-    return getActiveRouteName(route.state);
-  }
-
-  return route.name;
+    for(var key in segments){
+        args.push(key);
+        args.push(segments[key]);
+    }
+    CountlyReactNative.recordView(args);
 };
 
 Countly.setViewTracking = function(boolean){
@@ -129,7 +125,11 @@ Countly.setViewTracking = function(boolean){
 Countly.pushTokenType = function(tokenType){
     var args = [];
     args.push(tokenType || "");
-    CountlyReactNative.pushTokenType(args);
+    if(CountlyReactNative.pushTokenType){
+        CountlyReactNative.pushTokenType(args);
+    }else{
+        console.log("CountlyReactNative.pushTokenType is only supported in iOS");
+    }
 }
 Countly.sendPushToken = function(options){
     var args = [];
@@ -140,6 +140,15 @@ Countly.sendPushToken = function(options){
 Countly.askForNotificationPermission = function(){
     CountlyReactNative.askForNotificationPermission([]);
 }
+Countly.registerForNotification = function(theListener){
+    var event = eventEmitter.addListener('onCountlyPushNotification', theListener);
+    if(CountlyReactNative.registerForNotification){
+        CountlyReactNative.registerForNotification([]);
+    }else{
+        console.log("Countly.registerForNotification is only available for iOS");
+    }
+    return event;
+};
 // countly start for android
 Countly.start = function(){
     CountlyReactNative.start();
@@ -293,8 +302,14 @@ Countly.endSession = function(){
 Countly.enableParameterTamperingProtection = function(salt){
     CountlyReactNative.enableParameterTamperingProtection([salt.toString() || ""]);
 }
+Countly.pinnedCertificates = function(certificateName){
+    CountlyReactNative.pinnedCertificates([certificateName || ""]);
+}
 Countly.startEvent = function(eventName){
     CountlyReactNative.startEvent([eventName.toString() || ""]);
+}
+Countly.cancelEvent = function(eventName){
+    CountlyReactNative.cancelEvent([eventName.toString() || ""]);
 }
 Countly.endEvent = function(options){
     if(typeof options === "string") {
@@ -492,8 +507,9 @@ Countly.remoteConfigClearValues = async function(){
     return result;
 }
 
-Countly.showStarRating = function(){
-    CountlyReactNative.showStarRating([]);
+Countly.showStarRating = function(callback){
+    if(!callback){callback = function(){}};
+    CountlyReactNative.showStarRating([], callback);
 }
 
 Countly.showFeedbackPopup = function(widgetId, closeButtonText,){

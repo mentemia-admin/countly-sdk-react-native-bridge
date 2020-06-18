@@ -9,3 +9,7 @@ node_modules
 yarn.lock
 .idea
 .orig
+ios/Pods
+ios/countly-sdk-react-native-bridge.xcworkspace
+ios/Podfile.lock
+ios/countly-sdk-react-native-bridge.xcworkspace/* 
