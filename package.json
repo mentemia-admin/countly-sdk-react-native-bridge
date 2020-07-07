@@ -1,13 +1,11 @@
 {
   "name": "countly-sdk-react-native-bridge",
-  "version": "19.8.4",
-  "author": {
-    "name": "Trinisoft Technologies",
-    "email": "trinisofttechnologies@gmail.com",
-    "url": "http://trinisofttechnologies.com"
-  },
+  "version": "20.4.5",
+  "author": "Countly <hello@count.ly> (https://count.ly/)",
   "bugs": {
     "url": "https://github.com/Countly/countly-sdk-react-native-bridge/issues"
+  },
+  "scripts": {
   },
   "dependencies": {},
   "deprecated": false,

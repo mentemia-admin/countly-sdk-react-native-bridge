@@ -6,11 +6,13 @@
 
 import {
     Platform,
-    NativeModules
+    NativeModules,
+    NativeEventEmitter
 } from 'react-native';
 import parseErrorStackLib from '../react-native/Libraries/Core/Devtools/parseErrorStack.js';
 
 const CountlyReactNative = NativeModules.CountlyReactNative;
+const eventEmitter = new NativeEventEmitter(CountlyReactNative);
 
 const Countly = {};
 Countly.serverUrl = "";
@@ -18,19 +20,11 @@ Countly.appKey = "";
 
 Countly.messagingMode = {"DEVELOPMENT":"1","PRODUCTION":"0", "ADHOC": "2"};
 if (Platform.OS.match("android")) {
-    Countly.messagingMode.DEVELOPMENT = 2;
+    Countly.messagingMode.DEVELOPMENT = "2";
 }
 
 // countly initialization
-Countly.init = function(serverUrl,
-                        appKey,
-                        deviceId = ""){
-                        //     ,
-                        // starRatingAutoSessionCount = "0",
-                        // starRatingTitle = "Rate us.",
-                        // starRatingMessage = "How would you rate the app?",
-                        // starRatingButtonText = "Dismiss",
-                        // consentFlag = false
+Countly.init = function(serverUrl, appKey, deviceId = ""){
 
     Countly.serverUrl = serverUrl;
     Countly.appKey = appKey;
@@ -38,19 +32,18 @@ Countly.init = function(serverUrl,
     args.push(serverUrl);
     args.push(appKey);
     args.push(deviceId);
-    // args.push(starRatingAutoSessionCount);
-    // args.push(starRatingTitle);
-    // args.push(starRatingMessage);
-    // args.push(starRatingButtonText);
-    // args.push(consentFlag);
 
     CountlyReactNative.init(args);
 }
+
 Countly.isInitialized = function(){
-    return CountlyReactNative.isInitialized([]);
+    // returns a promise
+    return CountlyReactNative.isInitialized();
 }
+
 Countly.hasBeenCalledOnStart = function(){
-    return CountlyReactNative.hasBeenCalledOnStart([]);
+    // returns a promise
+    return CountlyReactNative.hasBeenCalledOnStart();
 }
 
 // countly sending various types of events
@@ -98,37 +91,29 @@ Countly.sendEvent = function(options){
     }
     CountlyReactNative.event(args);
 }
-Countly.recordView = function(recordView){
-    CountlyReactNative.recordView([recordView || ""]);
-};
-// As per the above documentation apply auto tracking method.
-// https://reactnavigation.org/docs/screen-tracking
-Countly.previousRouteName = "";
-Countly.autoTrackingView = function(state){
-    const currentRouteName = getActiveRouteName(state);
-    if(currentRouteName != Countly.previousRouteName){
-        Countly.recordView(currentRouteName);
+
+Countly.recordView = function(recordView, segments){
+    var args = [];
+    args.push(String(recordView) || "");
+    if(!segments){
+        segments = {};
     }
-    Countly.previousRouteName = currentRouteName;
-};
-const getActiveRouteName = function(state){
-  const route = state.routes[state.index];
-
-  if (route.state) {
-    // Dive into nested navigators
-    return getActiveRouteName(route.state);
-  }
-
-  return route.name;
+    for(var key in segments){
+        args.push(key);
+        args.push(segments[key]);
+    }
+    CountlyReactNative.recordView(args);
 };
 
 Countly.setViewTracking = function(boolean){
     CountlyReactNative.setViewTracking([boolean || "false"]);
 }
 
-Countly.pushTokenType = function(tokenType){
+Countly.pushTokenType = function(tokenType, channelName, channelDescription){
     var args = [];
     args.push(tokenType || "");
+    args.push(channelName || "");
+    args.push(channelDescription || "");
     CountlyReactNative.pushTokenType(args);
 }
 Countly.sendPushToken = function(options){
@@ -140,6 +125,11 @@ Countly.sendPushToken = function(options){
 Countly.askForNotificationPermission = function(){
     CountlyReactNative.askForNotificationPermission([]);
 }
+Countly.registerForNotification = function(theListener){
+    var event = eventEmitter.addListener('onCountlyPushNotification', theListener);
+    CountlyReactNative.registerForNotification([]);
+    return event;
+};
 // countly start for android
 Countly.start = function(){
     CountlyReactNative.start();
@@ -172,25 +162,10 @@ Countly.demo = function(){
 
 Countly.setLocation = function(countryCode, city, location, ipAddress){
     var args = [];
-    args.push(countryCode || "");
-    args.push(city || "");
-    if(!location){
-        location = "0.0,0.0";
-    }
-    var locationArray = location.split(",")
-    var newStringLocation = "";
-    if(locationArray[0].indexOf(".") == -1){
-        newStringLocation = newStringLocation+""+parseFloat(locationArray[0]).toFixed(2);
-    }else{
-        newStringLocation = newStringLocation+""+locationArray[0]
-    }
-    if(locationArray[1].indexOf(".") == -1){
-        newStringLocation = newStringLocation+","+ parseFloat(locationArray[1]).toFixed(2);
-    }else{
-        newStringLocation = newStringLocation+","+locationArray[1]
-    }
-    args.push(newStringLocation);
-    args.push(ipAddress || "0.0.0.0");
+    args.push(countryCode || "null");
+    args.push(city || "null");
+    args.push(location || "null");
+    args.push(ipAddress || "null");
     CountlyReactNative.setLocation(args);
 }
 Countly.disableLocation = function(){
@@ -231,13 +206,13 @@ Countly.enableCrashReporting = function(){
                 else {
                     const matches = row.match(regExp);
                     return matches && matches.length == 8 ? `${matches[1]}${matches[2]}${matches[4]}(${matches[6]}:${matches[7]})` : row;
-                } 
+                }
             })
             const stack = stackArr.join("\n");
-            if (Platform.OS.match("android")) {                
+            if (Platform.OS.match("android")) {
                 CountlyReactNative.logJSException(errorTitle, error.message.trim(), stack);
             }
-            else if (Platform.OS.match("ios")) {   
+            else if (Platform.OS.match("ios")) {
                 const errMessage = `[React] ${errorTitle}: ${error.message}`;
                 const errStack = error.message + "\n" + stack;
                 CountlyReactNative.logJSException(errorTitle, errMessage, errStack);
@@ -293,8 +268,14 @@ Countly.endSession = function(){
 Countly.enableParameterTamperingProtection = function(salt){
     CountlyReactNative.enableParameterTamperingProtection([salt.toString() || ""]);
 }
+Countly.pinnedCertificates = function(certificateName){
+    CountlyReactNative.pinnedCertificates([certificateName || ""]);
+}
 Countly.startEvent = function(eventName){
     CountlyReactNative.startEvent([eventName.toString() || ""]);
+}
+Countly.cancelEvent = function(eventName){
+    CountlyReactNative.cancelEvent([eventName.toString() || ""]);
 }
 Countly.endEvent = function(options){
     if(typeof options === "string") {
@@ -457,10 +438,10 @@ Countly.updateRemoteConfigExceptKeys = function(keyNames, callback){
 
 Countly.getRemoteConfigValueForKey = function(keyName, callback){
     CountlyReactNative.getRemoteConfigValueForKey([keyName.toString() || ""], (value) => {
-        if (Platform.OS == "android" ) {                       
+        if (Platform.OS == "android" ) {
             try {
                 value = JSON.parse(value);
-            }  
+            }
             catch (e) {
                // console.log(e.message);
                // noop. value will remain string if not JSON parsable and returned as string
@@ -471,13 +452,13 @@ Countly.getRemoteConfigValueForKey = function(keyName, callback){
 }
 
 Countly.getRemoteConfigValueForKeyP = function(keyName){
-        if (Platform.OS != "android" ) return "To be implemented"; 
+        if (Platform.OS != "android" ) return "To be implemented";
         const promise = CountlyReactNative.getRemoteConfigValueForKeyP(keyName);
         return promise.then(value => {
-            if (Platform.OS == "android" ) {                       
+            if (Platform.OS == "android" ) {
                 try {
                     value = JSON.parse(value);
-                }  
+                }
                 catch (e) {
                    // console.log(e.message);
                    // noop. value will remain string if not JSON parsable and returned as string
@@ -492,8 +473,9 @@ Countly.remoteConfigClearValues = async function(){
     return result;
 }
 
-Countly.showStarRating = function(){
-    CountlyReactNative.showStarRating([]);
+Countly.showStarRating = function(callback){
+    if(!callback){callback = function(){}};
+    CountlyReactNative.showStarRating([], callback);
 }
 
 Countly.showFeedbackPopup = function(widgetId, closeButtonText,){

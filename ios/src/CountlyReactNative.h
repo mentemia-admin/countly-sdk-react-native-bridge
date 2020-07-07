@@ -1,51 +1,53 @@
 #import "React/RCTBridgeModule.h"
+#import "React/RCTEventEmitter.h"
 
-@interface CountlyReactNative : NSObject <RCTBridgeModule>
-
-
-- (void)init:(NSArray*)arguments;
-- (void)event:(NSArray*)arguments;
-- (void)setLoggingEnabled:(NSArray*)arguments;
-- (void)setUserData:(NSArray*)arguments;
+@interface CountlyReactNative : RCTEventEmitter <RCTBridgeModule>
+typedef void (^Result)(id _Nullable result);
+- (void)init:(NSArray*_Nullable)arguments;
+- (void)event:(NSArray*_Nullable)arguments;
+- (void)setLoggingEnabled:(NSArray*_Nullable)arguments;
+- (void)setUserData:(NSArray*_Nullable)arguments;
 - (void)start;
 - (void)stop;
-- (void)recordView:(NSArray*)arguments;
+- (void)recordView:(NSArray*_Nullable)arguments;
 
-- (void)setHttpPostForced:(NSArray*)arguments;
-- (void)setLocation:(NSArray*)arguments;
+- (void)setHttpPostForced:(NSArray*_Nullable)arguments;
+- (void)setLocation:(NSArray*_Nullable)arguments;
 - (void)enableCrashReporting;
-- (void)addCrashLog:(NSArray*)arguments;
+- (void)addCrashLog:(NSArray*_Nullable)arguments;
 
-- (void)changeDeviceId:(NSArray*)arguments;
-- (void)enableParameterTamperingProtection:(NSArray*)arguments;
-// - (void)startEvent:(NSString*)arguments;
-// - (void)endEvent:(NSDictionary*)arguments;
-- (void)startEvent:(NSArray*)arguments;
-- (void)endEvent:(NSArray*)arguments;
+- (void)changeDeviceId:(NSArray*_Nullable)arguments;
+- (void)enableParameterTamperingProtection:(NSArray*_Nullable)arguments;
+- (void)pinnedCertificates:(NSArray*_Nullable)arguments;
+- (void)startEvent:(NSArray*_Nullable)arguments;
+- (void)endEvent:(NSArray*_Nullable)arguments;
 
-- (void)userData_setProperty:(NSArray*)arguments;
-- (void)userData_increment:(NSArray*)arguments;
-- (void)userData_incrementBy:(NSArray*)arguments;
-- (void)userData_multiply:(NSArray*)arguments;
-- (void)userData_saveMax:(NSArray*)arguments;
-- (void)userData_saveMin:(NSArray*)arguments;
-- (void)demo:(NSArray*)arguments;
-- (void)setRequiresConsent:(NSArray*)arguments;
-- (void)giveConsent:(NSArray*)arguments;
-- (void)removeConsent:(NSArray*)arguments;
+- (void)userData_setProperty:(NSArray*_Nullable)arguments;
+- (void)userData_increment:(NSArray*_Nullable)arguments;
+- (void)userData_incrementBy:(NSArray*_Nullable)arguments;
+- (void)userData_multiply:(NSArray*_Nullable)arguments;
+- (void)userData_saveMax:(NSArray*_Nullable)arguments;
+- (void)userData_saveMin:(NSArray*_Nullable)arguments;
+- (void)demo:(NSArray*_Nullable)arguments;
+- (void)setRequiresConsent:(NSArray*_Nullable)arguments;
+- (void)giveConsent:(NSArray*_Nullable)arguments;
+- (void)removeConsent:(NSArray*_Nullable)arguments;
 - (void)giveAllConsent;
 - (void)removeAllConsent;
-- (void)remoteConfigUpdate:(NSArray*)arguments;
-- (void)updateRemoteConfigForKeysOnly:(NSArray*)arguments;
-- (void)updateRemoteConfigExceptKeys:(NSArray*)arguments;
-- (void)getRemoteConfigValueForKey:(NSArray*)arguments;
-- (void)setStarRatingDialogTexts:(NSArray*)arguments;
-- (void)showStarRating:(NSArray*)arguments;
-- (void)showFeedbackPopup:(NSArray*)arguments;
-- (void)setEventSendThreshold:(NSArray*)arguments;
-- (void)pushTokenType:(NSArray*)arguments;
-- (void)sendPushToken:(NSArray*)arguments;
-- (void)askForNotificationPermission:(NSArray*)arguments;
-- (void)remoteConfigClearValues:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject;
-
+- (void)remoteConfigUpdate:(NSArray*_Nullable)arguments callback:(RCTResponseSenderBlock _Nullable)callback;
+- (void)updateRemoteConfigForKeysOnly:(NSArray*_Nullable)arguments callback:(RCTResponseSenderBlock _Nullable)callback;
+- (void)updateRemoteConfigExceptKeys:(NSArray*_Nullable)arguments callback:(RCTResponseSenderBlock _Nullable)callback;
+- (void)getRemoteConfigValueForKey:(NSArray*_Nullable)arguments callback:(RCTResponseSenderBlock _Nullable)callback;
+- (void)showStarRating:(NSArray*_Nullable)arguments callback:(RCTResponseSenderBlock _Nullable)callback;
+- (void)showFeedbackPopup:(NSArray*_Nullable)arguments;
+- (void)setEventSendThreshold:(NSArray*_Nullable)arguments;
+- (void)pushTokenType:(NSArray*_Nullable)arguments;
+- (void)sendPushToken:(NSArray*_Nullable)arguments;
+- (void)askForNotificationPermission:(NSArray*_Nullable)arguments;
+- (void)registerForNotification:(NSArray*_Nullable)arguments;
++ (void)onNotification:(NSDictionary *_Nullable)notification;
+- (void)handleRemoteNotificationReceived:(NSDictionary *_Nullable)notification;
+- (void)remoteConfigClearValues:(RCTPromiseResolveBlock _Nullable )resolve rejecter:(RCTPromiseRejectBlock _Nullable )reject;
++ (NSString *_Nullable) toJSON: (NSDictionary  * _Nullable) json;
+- (void) saveListener:(Result _Nullable ) result;
 @end
