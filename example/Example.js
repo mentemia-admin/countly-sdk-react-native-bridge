@@ -26,16 +26,18 @@ class Example extends Component {
         this.changeDeviceId = this.changeDeviceId.bind(this);
         this.enableParameterTamperingProtection = this.enableParameterTamperingProtection.bind(this);
         this.pinnedCertificates = this.pinnedCertificates.bind(this);
+        this.askForNotificationPermission = this.askForNotificationPermission.bind(this);
     };
 
     componentDidMount(){
       Countly.registerForNotification(function(theNotification){
-        alert('theNotification: ' +JSON.stringify(theNotification));
+        console.log("Just received this notification data: " + JSON.stringify(theNotification));
+        alert('theNotification: ' + JSON.stringify(theNotification));
       });
     }
 
     onInit(){
-      Countly.pushTokenType(Countly.messagingMode.DEVELOPMENT);
+      Countly.pushTokenType(Countly.messagingMode.DEVELOPMENT, "Channel Name", "Channel Description");
       Countly.enableLogging();
       Countly.init("https://trinisoft.count.ly", "f0b2ac6919f718a13821575db28c0e2971e05ec5");
     }
@@ -291,14 +293,17 @@ class Example extends Component {
       var latitude = "29.634933";
       var longitude = "-95.220255";
       var ipAddress = "103.238.105.167";
+
       Countly.setLocation(countryCode, city, latitude + "," + longitude, ipAddress);
     };
     disableLocation(){
       Countly.disableLocation();
     };
 
-    setupPush(){
+    askForNotificationPermission(){
       Countly.askForNotificationPermission();
+    }
+    oldPushBackup(){
       // console.log('setupPush');
       // PushNotificationIOS.addEventListener('registrationError', function(error){
       //   console.log('error:', error);
@@ -427,6 +432,21 @@ class Example extends Component {
 
       // this.changeDeviceId();
       this.enableParameterTamperingProtection();
+
+      // Note: Crash test for setLocation method.
+      // Countly.setLocation(null, city, latitude + "," + longitude, ipAddress);
+      // Countly.setLocation(null, null, latitude + "," + longitude, ipAddress);
+      // Countly.setLocation(null, null, null, ipAddress);
+      // Countly.setLocation(null, null, null, null);
+      // Countly.setLocation(countryCode, null, null, null);
+      // Countly.setLocation(countryCode, city, null, null);
+      // Countly.setLocation(countryCode, city, latitude + "," + longitude, null);
+
+      // Countly.setLocation(countryCode, city, ",", ipAddress);
+      // Countly.setLocation(countryCode, city, "0,0", ipAddress);
+      // Countly.setLocation(countryCode, city, "a,b", ipAddress);
+      // Countly.setLocation(countryCode, city, "abcd", ipAddress);
+
     }
     render() {
 
@@ -487,7 +507,7 @@ class Example extends Component {
 
 
             < Text style={[{ textAlign: 'center' }]}>Push Notification Start</Text>
-            < Button onPress={this.setupPush} title='Register Device' color='#00b5ad' />
+            < Button onPress={this.askForNotificationPermission} title='askForNotificationPermission' color='#00b5ad' />
             < Button onPress={this.changeDeviceId} title='Change Device ID' color='#00b5ad' />
             < Text style={[{ textAlign: 'center' }]}>Push Notification End</Text>
 
