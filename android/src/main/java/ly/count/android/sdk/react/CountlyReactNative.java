@@ -266,7 +266,6 @@ public class CountlyReactNative extends ReactContextBaseJavaModule {
         Countly.sharedInstance().crashes().recordHandledException(exception);
     }
 
-
     @ReactMethod
     public void logExceptionV2(ReadableArray args) {
         if (args.size() < 4)
@@ -275,17 +274,17 @@ public class CountlyReactNative extends ReactContextBaseJavaModule {
         String errorDetails = args.getString(3);
         Exception exception = new Exception(errorName, new Throwable(errorDetails));
 
-        Boolean nonfatal = args.getBoolean(1);
+//        Boolean nonfatal = args.getBoolean(1);
+//
+//        HashMap<String, String> segments = new HashMap<String, String>();
+//        for (int i = 4, il = args.size(); i < il; i += 2) {
+//            segments.put(args.getString(i), args.getString(i + 1));
+//        }
+//
+//        segments.put("nonfatal", nonfatal.toString());
+//        Countly.sharedInstance().setCustomCrashSegments(segments);
 
-        HashMap<String, String> segments = new HashMap<String, String>();
-        for (int i = 4, il = args.size(); i < il; i += 2) {
-            segments.put(args.getString(i), args.getString(i + 1));
-        }
-
-        segments.put("nonfatal", nonfatal.toString());
-        Countly.sharedInstance().setCustomCrashSegments(segments);
-
-        Countly.sharedInstance().logException(exception);
+        Countly.sharedInstance().crashes().recordHandledException(exception);
     }
 
     
